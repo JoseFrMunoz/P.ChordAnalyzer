@@ -8,14 +8,23 @@ PChordAnalyzerProcessor::PChordAnalyzerProcessor()
 {
 }
 
-void PChordAnalyzerProcessor::prepareToPlay (double /*sampleRate*/, int /*samplesPerBlock*/)
+PChordAnalyzerProcessor::~PChordAnalyzerProcessor()
+{
+    motor.stop();
+}
+
+void PChordAnalyzerProcessor::prepareToPlay (double sampleRate, int /*samplesPerBlock*/)
 {
     // Solo analizamos: no añadimos ningún retardo al audio.
     setLatencySamples (0);
+
+    // Reserva la memoria del análisis y arranca su hilo (aquí sí se puede reservar).
+    motor.prepare (sampleRate);
 }
 
 void PChordAnalyzerProcessor::releaseResources()
 {
+    motor.stop();
 }
 
 bool PChordAnalyzerProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -35,7 +44,12 @@ void PChordAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     // Paso directo: el audio de entrada ya está en el buffer y sale tal cual.
     // Solo limpiamos canales de salida que no tengan entrada correspondiente.
-    for (auto canal = getTotalNumInputChannels(); canal < getTotalNumOutputChannels(); ++canal)
+    const auto canalesEntrada = getTotalNumInputChannels();
+
+    // Copiamos la mezcla mono al FIFO del análisis antes de tocar nada.
+    motor.pushAudio (buffer, canalesEntrada);
+
+    for (auto canal = canalesEntrada; canal < getTotalNumOutputChannels(); ++canal)
         buffer.clear (canal, 0, buffer.getNumSamples());
 }
 

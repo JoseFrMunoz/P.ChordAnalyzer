@@ -1,19 +1,20 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "Analysis/AnalysisEngine.h"
 
 /**
     Procesador de P.ChordAnalyzer.
 
-    Fase 1: el audio pasa intacto (paso directo) y la latencia es 0.
-    En fases siguientes, aquí se copiará la mezcla mono a un FIFO sin bloqueos
-    para que el hilo de análisis calcule la escala.
+    El audio pasa intacto (paso directo) y la latencia es 0. En cada bloque
+    solo se copia la mezcla mono al FIFO del motor de análisis, que trabaja en
+    su propio hilo.
 */
 class PChordAnalyzerProcessor final : public juce::AudioProcessor
 {
 public:
     PChordAnalyzerProcessor();
-    ~PChordAnalyzerProcessor() override = default;
+    ~PChordAnalyzerProcessor() override;
 
     // --- Ciclo de vida del audio ---
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -44,6 +45,11 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    /** Motor de análisis (la UI lee de aquí el resultado). */
+    pca::AnalysisEngine& getMotor() noexcept { return motor; }
+
 private:
+    pca::AnalysisEngine motor;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PChordAnalyzerProcessor)
 };

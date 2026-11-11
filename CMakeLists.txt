@@ -41,9 +41,19 @@ juce_add_plugin(PChordAnalyzer
     VST3_CATEGORIES         Fx Analyzer
 )
 
+# Motor de análisis: se compila tanto en el plugin como en los tests.
+set(PCA_FUENTES_ANALISIS
+    Source/Analysis/ChromaExtractor.cpp
+    Source/Analysis/KeyDetector.cpp
+    Source/Analysis/AnalysisCore.cpp
+    Source/Analysis/AnalysisEngine.cpp
+    Source/Analysis/KeyNames.cpp
+)
+
 target_sources(PChordAnalyzer PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
+    ${PCA_FUENTES_ANALISIS}
 )
 
 target_compile_definitions(PChordAnalyzer PUBLIC
@@ -62,3 +72,37 @@ target_link_libraries(PChordAnalyzer
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# --- Tests unitarios (se ejecutan con CTest en GitHub Actions) ---
+option(PCA_TESTS "Compilar los tests unitarios" ON)
+
+if(PCA_TESTS)
+    enable_testing()
+
+    juce_add_console_app(PChordAnalyzerTests
+        PRODUCT_NAME "PChordAnalyzerTests"
+    )
+
+    target_sources(PChordAnalyzerTests PRIVATE
+        Tests/TestMain.cpp
+        Tests/KeyDetectionTests.cpp
+        ${PCA_FUENTES_ANALISIS}
+    )
+
+    target_compile_definitions(PChordAnalyzerTests PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+    )
+
+    target_link_libraries(PChordAnalyzerTests
+        PRIVATE
+            juce::juce_core
+            juce::juce_audio_basics
+            juce::juce_dsp
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
+
+    add_test(NAME PChordAnalyzerTests COMMAND PChordAnalyzerTests)
+endif()

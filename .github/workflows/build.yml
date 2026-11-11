@@ -26,6 +26,9 @@ jobs:
       - name: Compilar en Release
         run: cmake --build build --config Release --parallel
 
+      - name: Ejecutar los tests unitarios
+        run: ctest --test-dir build -C Release --output-on-failure
+
       - name: Subir el plugin VST3
         uses: actions/upload-artifact@v4
         with:

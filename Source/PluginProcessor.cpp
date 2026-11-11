@@ -4,8 +4,18 @@
 PChordAnalyzerProcessor::PChordAnalyzerProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput  ("Entrada", juce::AudioChannelSet::stereo(), true)
-                          .withOutput ("Salida",  juce::AudioChannelSet::stereo(), true))
+                          .withOutput ("Salida",  juce::AudioChannelSet::stereo(), true)),
+      parametros (*this, nullptr, "PARAMETROS", crearParametros())
 {
+    parametroBypass = dynamic_cast<juce::AudioParameterBool*> (parametros.getParameter (idBypass));
+    jassert (parametroBypass != nullptr);
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout PChordAnalyzerProcessor::crearParametros()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { idBypass, 1 }, "Bypass", false));
+    return layout;
 }
 
 PChordAnalyzerProcessor::~PChordAnalyzerProcessor()
@@ -46,10 +56,30 @@ void PChordAnalyzerProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // Solo limpiamos canales de salida que no tengan entrada correspondiente.
     const auto canalesEntrada = getTotalNumInputChannels();
 
+    // Bypass: el audio sigue pasando intacto pero el análisis se detiene.
+    motor.setActivo (! parametroBypass->get());
+
     // Copiamos la mezcla mono al FIFO del análisis antes de tocar nada.
     motor.pushAudio (buffer, canalesEntrada);
 
+    // Standalone: la entrada se escucha pero no se reenvía a los altavoces
+    // (evita acoples). En el plugin, paso directo intacto.
+    if (wrapperType == wrapperType_Standalone)
+    {
+        buffer.clear();
+        return;
+    }
+
     for (auto canal = canalesEntrada; canal < getTotalNumOutputChannels(); ++canal)
+        buffer.clear (canal, 0, buffer.getNumSamples());
+}
+
+void PChordAnalyzerProcessor::processBlockBypassed (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+{
+    // Bypass del host (si no usa nuestro parámetro): mismo comportamiento.
+    motor.setActivo (false);
+
+    for (auto canal = getTotalNumInputChannels(); canal < getTotalNumOutputChannels(); ++canal)
         buffer.clear (canal, 0, buffer.getNumSamples());
 }
 

@@ -1,30 +1,45 @@
 #include "PluginEditor.h"
-#include "Analysis/KeyNames.h"
-
-namespace
-{
-    // Medidas y colores de la especificación visual.
-    constexpr int anchoVentana = 340;
-    constexpr int altoVentana  = 330;
-    constexpr float radioEsquinas = 6.0f;
-
-    const juce::Colour colorFondo      { 0xFF0E0E10 };
-    const juce::Colour colorBorde      { 0xFF26262B };
-    const juce::Colour colorTexto      { 0xFFF5F5F7 };
-    const juce::Colour colorSecundario { 0xFF8A8A92 };
-}
+#include "UI/Tema.h"
 
 PChordAnalyzerEditor::PChordAnalyzerEditor (PChordAnalyzerProcessor& p)
     : AudioProcessorEditor (&p), procesador (p)
 {
+    addAndMakeVisible (interfaz);
+
+    // --- Congelar: la UI deja de actualizarse; el análisis sigue por detrás ---
+    cabecera.botonCongelar.setToggleState (procesador.congelado.load(), juce::dontSendNotification);
+    cabecera.botonCongelar.onClick = [this]
+    {
+        procesador.congelado = cabecera.botonCongelar.getToggleState();
+        if (! procesador.congelado.load())
+            leerResultado();   // al reanudar, mostrar el estado actual
+    };
+
+    // --- Bypass: parámetro del plugin ---
+    auto* parametro = procesador.parametros.getParameter (PChordAnalyzerProcessor::idBypass);
+    enlaceBypass = std::make_unique<juce::ParameterAttachment> (*parametro, [this] (float valor)
+    {
+        aplicarBypass (valor >= 0.5f, true);
+    });
+
+    cabecera.botonBypass.onClick = [this]
+    {
+        enlaceBypass->setValueAsCompleteGesture (cabecera.botonBypass.getToggleState() ? 1.0f : 0.0f);
+    };
+
+    // Estado inicial sin animación.
+    aplicarBypass (parametro->getValue() >= 0.5f, false);
+
     // Tamaño fijo, no redimensionable.
     setResizable (false, false);
-    setSize (anchoVentana, altoVentana);
+    setSize (tema::medida::anchoVentana, tema::medida::altoVentana);
 
-    resultado = procesador.getMotor().getResult();
+    // Primer resultado aunque esté congelado (al abrir la ventana hay que ver algo).
+    vistas.setResultado (procesador.getMotor().getResult());
+    ultimaVersion = procesador.getMotor().getVersion();
 
-    // La UI consulta el resultado 10 veces por segundo y solo repinta si cambia.
-    startTimerHz (10);
+    // Como mucho 30 lecturas por segundo; solo se repinta si algo cambia.
+    startTimerHz (30);
 }
 
 PChordAnalyzerEditor::~PChordAnalyzerEditor()
@@ -32,63 +47,32 @@ PChordAnalyzerEditor::~PChordAnalyzerEditor()
     stopTimer();
 }
 
+void PChordAnalyzerEditor::aplicarBypass (bool activo, bool animar)
+{
+    cabecera.botonBypass.setToggleState (activo, juce::dontSendNotification);
+    cabecera.setBypass (activo);
+    vistas.setAtenuada (activo, animar);
+}
+
 void PChordAnalyzerEditor::timerCallback()
+{
+    if (procesador.congelado.load())
+        return;
+
+    leerResultado();
+}
+
+void PChordAnalyzerEditor::leerResultado()
 {
     const auto version = procesador.getMotor().getVersion();
     if (version == ultimaVersion)
         return;
 
     ultimaVersion = version;
-    resultado = procesador.getMotor().getResult();
-    repaint();
-}
-
-void PChordAnalyzerEditor::paint (juce::Graphics& g)
-{
-    // El host pinta detrás de las esquinas redondeadas: usamos el mismo
-    // tono de fondo para que no se vean picos claros.
-    g.fillAll (colorFondo);
-
-    const auto area = getLocalBounds().toFloat().reduced (0.5f);
-    g.setColour (colorBorde);
-    g.drawRoundedRectangle (area, radioEsquinas, 1.0f);
-
-    // --- Resultado provisional en texto (fase 2) ---
-    auto zona = getLocalBounds().reduced (12);
-
-    g.setColour (colorSecundario);
-    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-    g.drawText ("P.CHORDANALYZER", zona.removeFromTop (24), juce::Justification::centredLeft);
-
-    zona.removeFromTop (70);
-
-    if (! resultado.hayEscala)
-    {
-        g.setFont (juce::FontOptions (16.0f));
-        g.drawText (juce::String (juce::CharPointer_UTF8 ("Escuchando\xe2\x80\xa6")),
-                    zona.removeFromTop (30), juce::Justification::centred);
-        return;
-    }
-
-    const auto nombre = pca::nombres::nombreEspanol (resultado.tonica, resultado.menor);
-    const auto cifrado = pca::nombres::cifrado (resultado.tonica, resultado.menor);
-    const auto relativa = pca::nombres::nombreEspanol (resultado.tonicaRelativa(), ! resultado.menor);
-    const auto porcentaje = juce::String (juce::roundToInt (resultado.confianza * 100.0f)) + " %";
-
-    g.setColour (colorTexto);
-    g.setFont (juce::FontOptions (28.0f, juce::Font::bold));
-    g.drawText (nombre, zona.removeFromTop (40), juce::Justification::centred);
-
-    g.setColour (colorSecundario);
-    g.setFont (juce::FontOptions (16.0f));
-    g.drawText (cifrado + "  \xc2\xb7  " + porcentaje, zona.removeFromTop (26), juce::Justification::centred);
-    g.drawText ("relativa: " + relativa, zona.removeFromTop (24), juce::Justification::centred);
-
-    if (resultado.silencio)
-        g.drawText ("(silencio: se mantiene la ultima escala)", zona.removeFromTop (24), juce::Justification::centred);
+    vistas.setResultado (procesador.getMotor().getResult());
 }
 
 void PChordAnalyzerEditor::resized()
 {
-    // Fase 2: todavía no hay componentes que colocar.
+    interfaz.setBounds (getLocalBounds());
 }

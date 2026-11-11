@@ -55,11 +55,10 @@ namespace pca
 
     void AnalysisEngine::setActivo (bool nuevo) noexcept
     {
-        activo = nuevo;
-
-        // Al reactivar, el audio que quedara en el FIFO es viejo: se descarta en el hilo.
-        if (nuevo)
-            notify();
+        // Se llama desde el hilo de audio en cada bloque: solo un atómico, sin
+        // despertar al hilo (se despierta solo cada 100 ms). Al reactivar, el
+        // hilo descarta el audio viejo que quedara en el FIFO.
+        activo.store (nuevo, std::memory_order_relaxed);
     }
 
     KeyResult AnalysisEngine::getResult() const

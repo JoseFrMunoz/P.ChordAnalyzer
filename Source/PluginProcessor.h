@@ -21,7 +21,12 @@ public:
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlockBypassed (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     using AudioProcessor::processBlock;
+    using AudioProcessor::processBlockBypassed;
+
+    /** El host ve este parámetro como el bypass del plugin. */
+    juce::AudioProcessorParameter* getBypassParameter() const override { return parametroBypass; }
 
     // --- Editor ---
     juce::AudioProcessorEditor* createEditor() override;
@@ -48,8 +53,20 @@ public:
     /** Motor de análisis (la UI lee de aquí el resultado). */
     pca::AnalysisEngine& getMotor() noexcept { return motor; }
 
+    /** Parámetros del plugin (de momento, solo el bypass). */
+    juce::AudioProcessorValueTreeState parametros;
+
+    /** Congelar: estado de la UI (no es parámetro del host). Lo guarda el procesador
+        para que no se pierda al cerrar y abrir la ventana. */
+    std::atomic<bool> congelado { false };
+
+    static constexpr const char* idBypass = "bypass";
+
 private:
+    static juce::AudioProcessorValueTreeState::ParameterLayout crearParametros();
+
     pca::AnalysisEngine motor;
+    juce::AudioParameterBool* parametroBypass = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PChordAnalyzerProcessor)
 };

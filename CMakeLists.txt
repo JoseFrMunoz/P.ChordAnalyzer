@@ -41,6 +41,16 @@ juce_add_plugin(PChordAnalyzer
     VST3_CATEGORIES         Fx Analyzer
 )
 
+# Interfaz: se compila en el plugin y en la herramienta de capturas.
+set(PCA_FUENTES_UI
+    Source/UI/Tema.cpp
+    Source/UI/BotonIcono.cpp
+    Source/UI/Cabecera.cpp
+    Source/UI/VistaCirculo.cpp
+    Source/UI/ZonaVistas.cpp
+    Source/UI/Interfaz.cpp
+)
+
 # Motor de análisis: se compila tanto en el plugin como en los tests.
 set(PCA_FUENTES_ANALISIS
     Source/Analysis/ChromaExtractor.cpp
@@ -53,7 +63,20 @@ set(PCA_FUENTES_ANALISIS
 target_sources(PChordAnalyzer PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
+    Source/StandaloneApp.cpp
+    ${PCA_FUENTES_UI}
     ${PCA_FUENTES_ANALISIS}
+)
+
+# Tipografías embebidas (licencia OFL, ver Resources/Fonts/README.md).
+juce_add_binary_data(PChordAnalyzerFuentes
+    HEADER_NAME BinaryData.h
+    NAMESPACE   BinaryData
+    SOURCES
+        Resources/Fonts/Inter-Regular.ttf
+        Resources/Fonts/Inter-SemiBold.ttf
+        Resources/Fonts/Inter-Bold.ttf
+        Resources/Fonts/JetBrainsMono-Regular.ttf
 )
 
 target_compile_definitions(PChordAnalyzer PUBLIC
@@ -61,10 +84,12 @@ target_compile_definitions(PChordAnalyzer PUBLIC
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
+    JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1   # Source/StandaloneApp.cpp
 )
 
 target_link_libraries(PChordAnalyzer
     PRIVATE
+        PChordAnalyzerFuentes
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC
@@ -105,4 +130,28 @@ if(PCA_TESTS)
     )
 
     add_test(NAME PChordAnalyzerTests COMMAND PChordAnalyzerTests)
+endif()
+
+# --- Herramienta de capturas de la interfaz (opcional, no se usa en CI) ---
+option(PCA_CAPTURAS "Compilar la herramienta que genera capturas PNG de la interfaz" OFF)
+
+if(PCA_CAPTURAS)
+    juce_add_console_app(PChordAnalyzerCapturas PRODUCT_NAME "PChordAnalyzerCapturas")
+
+    target_sources(PChordAnalyzerCapturas PRIVATE
+        Tools/Capturas.cpp
+        ${PCA_FUENTES_UI}
+        Source/Analysis/KeyNames.cpp
+    )
+
+    target_compile_definitions(PChordAnalyzerCapturas PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+
+    target_link_libraries(PChordAnalyzerCapturas
+        PRIVATE
+            PChordAnalyzerFuentes
+            juce::juce_gui_basics
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags
+    )
 endif()

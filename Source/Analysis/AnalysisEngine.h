@@ -32,7 +32,8 @@ namespace pca
         /** Hilo de audio: copia el bloque al FIFO. Seguro en tiempo real. */
         void pushAudio (const juce::AudioBuffer<float>& buffer, int numCanales) noexcept;
 
-        /** Activa o desactiva el análisis (bypass). Desactivado, CPU ≈ 0. */
+        /** Activa o desactiva el análisis (bypass). Desactivado, CPU ≈ 0.
+            Seguro en tiempo real. */
         void setActivo (bool activo) noexcept;
         bool isActivo() const noexcept { return activo.load(); }
 

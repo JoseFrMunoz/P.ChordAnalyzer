@@ -60,7 +60,20 @@ void PChordAnalyzerEditor::aplicarBypass (bool activo, bool animar)
 
 void PChordAnalyzerEditor::timerCallback()
 {
-    if (procesador.congelado.load())
+    // Si el host ha cargado otro estado con la ventana abierta, sincronizar.
+    const auto vista = procesador.vistaActual.load();
+    if (vista != interfaz.vistas.getVista())
+        interfaz.setVista (vista, false);
+
+    const auto congelado = procesador.congelado.load();
+    if (congelado != cabecera.botonCongelar.getToggleState())
+    {
+        cabecera.botonCongelar.setToggleState (congelado, juce::dontSendNotification);
+        if (! congelado)
+            leerResultado();
+    }
+
+    if (congelado)
         return;
 
     leerResultado();

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "EstadoPlugin.h"
 
 PChordAnalyzerProcessor::PChordAnalyzerProcessor()
     : AudioProcessor (BusesProperties()
@@ -88,14 +89,26 @@ juce::AudioProcessorEditor* PChordAnalyzerProcessor::createEditor()
     return new PChordAnalyzerEditor (*this);
 }
 
-void PChordAnalyzerProcessor::getStateInformation (juce::MemoryBlock& /*destData*/)
+void PChordAnalyzerProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // Fase 5: guardar vista actual, congelar y bypass.
+    // Se guarda con el proyecto de FL: vista abierta, congelar y bypass.
+    EstadoPlugin estado;
+    estado.vista = vistaActual.load();
+    estado.congelado = congelado.load();
+    estado.bypass = parametroBypass->get();
+    destData = estado.guardar();
 }
 
-void PChordAnalyzerProcessor::setStateInformation (const void* /*data*/, int /*sizeInBytes*/)
+void PChordAnalyzerProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // Fase 5: restaurar vista actual, congelar y bypass.
+    const auto estado = EstadoPlugin::cargar (data, sizeInBytes);
+    vistaActual = estado.vista;
+    congelado = estado.congelado;
+
+    // El bypass es un parámetro: se fija avisando al host.
+    parametroBypass->setValueNotifyingHost (estado.bypass ? 1.0f : 0.0f);
+
+    // Si la ventana está abierta, se entera en su siguiente tic (ver PluginEditor).
 }
 
 // Punto de entrada que usa JUCE para crear el plugin.

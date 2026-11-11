@@ -68,6 +68,7 @@ set(PCA_FUENTES_ANALISIS
 target_sources(PChordAnalyzer PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
+    Source/EstadoPlugin.cpp
     Source/StandaloneApp.cpp
     ${PCA_FUENTES_UI}
     ${PCA_FUENTES_ANALISIS}
@@ -116,6 +117,8 @@ if(PCA_TESTS)
     target_sources(PChordAnalyzerTests PRIVATE
         Tests/TestMain.cpp
         Tests/KeyDetectionTests.cpp
+        Tests/EstadoYRendimientoTests.cpp
+        Source/EstadoPlugin.cpp
         ${PCA_FUENTES_ANALISIS}
     )
 
@@ -127,6 +130,7 @@ if(PCA_TESTS)
     target_link_libraries(PChordAnalyzerTests
         PRIVATE
             juce::juce_core
+            juce::juce_data_structures
             juce::juce_audio_basics
             juce::juce_dsp
         PUBLIC

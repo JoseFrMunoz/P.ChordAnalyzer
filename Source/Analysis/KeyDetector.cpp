@@ -136,7 +136,7 @@ namespace pca
                 tiempoCandidata = segundosTrama;
             }
 
-            if (tiempoCandidata >= histeresisSegundos)
+            if (tiempoCandidata >= (hayEscala ? histeresisSegundos : primeraEscalaSegundos))
             {
                 escalaMostrada = mejor;
                 hayEscala = true;

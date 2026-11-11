@@ -13,24 +13,52 @@ namespace
     constexpr int negras[5]  { 1, 3, 6, 8, 10 };
     constexpr float posicionNegra[5] { 1.0f, 2.0f, 4.0f, 5.0f, 6.0f };   // borde derecho de la blanca n
 
-    void dibujarPuntoTonica (juce::Graphics& g, juce::Rectangle<float> tecla)
+    void dibujarPuntoTonica (juce::Graphics& g, juce::Rectangle<float> tecla, float nivel)
     {
+        if (nivel <= 0.0f)
+            return;
+
         const auto diametro = 7.0f;
-        g.setColour (tema::color::fondo);
+        g.setColour (tema::color::fondo.withAlpha (nivel));
         g.fillEllipse (juce::Rectangle<float> (diametro, diametro)
                            .withCentre ({ tecla.getCentreX(), tecla.getBottom() - 12.0f }));
     }
 }
 
+VistaTeclado::VistaTeclado()
+    : reloj ([this] (double dt)
+      {
+          const auto a = encendida.avanzar (dt);
+          const auto b = tonica.avanzar (dt);
+          if (a || b) repaint();
+          return encendida.enMovimiento() || tonica.enMovimiento();
+      })
+{
+}
+
 void VistaTeclado::setResultado (const pca::KeyResult& nuevo)
 {
     // Solo repinta si cambia la escala o el porcentaje (el cromagrama no se dibuja aquí).
-    const auto cambia = nuevo.hayEscala != resultado.hayEscala || nuevo.tonica != resultado.tonica
-                     || nuevo.menor != resultado.menor
-                     || juce::roundToInt (nuevo.confianza * 100.0f) != juce::roundToInt (resultado.confianza * 100.0f);
+    const auto cambiaEscala = nuevo.hayEscala != resultado.hayEscala || nuevo.tonica != resultado.tonica
+                           || nuevo.menor != resultado.menor;
+    const auto cambiaPorcentaje = juce::roundToInt (nuevo.confianza * 100.0f) != juce::roundToInt (resultado.confianza * 100.0f);
     resultado = nuevo;
 
-    if (cambia)
+    if (cambiaEscala || primerResultado)
+    {
+        for (int n = 0; n < 12; ++n)
+        {
+            encendida.setObjetivo ((size_t) n, escala::contiene (resultado, n) ? 1.0f : 0.0f);
+            tonica.setObjetivo ((size_t) n, escala::esTonica (resultado, n) ? 1.0f : 0.0f);
+        }
+
+        if (primerResultado) { encendida.saltar(); tonica.saltar(); }
+        else                 reloj.arrancar();
+    }
+
+    primerResultado = false;
+
+    if (cambiaEscala || cambiaPorcentaje)
         repaint();
 }
 
@@ -54,18 +82,17 @@ void VistaTeclado::paint (juce::Graphics& g)
         auto tecla = juce::Rectangle<float> (teclado.getX() + anchoBlanca * (float) i, teclado.getY(), anchoBlanca, teclado.getHeight())
                          .reduced (1.0f, 0.0f);
 
-        const auto encendida = escala::contiene (resultado, nota);
-        g.setColour (encendida ? tema::color::enEscala : tema::color::boton);
+        const auto nivel = encendida[(size_t) nota];
+        g.setColour (tema::color::boton.interpolatedWith (tema::color::enEscala, nivel));
         g.fillRoundedRectangle (tecla, 3.0f);
 
-        if (! encendida)
+        if (nivel < 1.0f)
         {
-            g.setColour (tema::color::bordeBoton.withAlpha (0.6f));
+            g.setColour (tema::color::bordeBoton.withAlpha (0.6f * (1.0f - nivel)));
             g.drawRoundedRectangle (tecla.reduced (0.5f), 3.0f, 1.0f);
         }
 
-        if (escala::esTonica (resultado, nota))
-            dibujarPuntoTonica (g, tecla);
+        dibujarPuntoTonica (g, tecla, tonica[(size_t) nota]);
     }
 
     // --- Teclas negras ---
@@ -82,18 +109,17 @@ void VistaTeclado::paint (juce::Graphics& g)
         g.setColour (tema::color::fondo);
         g.fillRoundedRectangle (tecla.expanded (1.5f, 0.0f).withTrimmedTop (-1.0f).withBottom (tecla.getBottom() + 1.5f), 3.0f);
 
-        const auto encendida = escala::contiene (resultado, nota);
-        g.setColour (encendida ? tema::color::enEscala : tema::color::teclaNegra);
+        const auto nivel = encendida[(size_t) nota];
+        g.setColour (tema::color::teclaNegra.interpolatedWith (tema::color::enEscala, nivel));
         g.fillRoundedRectangle (tecla, 2.5f);
 
-        if (! encendida)
+        if (nivel < 1.0f)
         {
-            g.setColour (tema::color::bordeTeclaNegra);
+            g.setColour (tema::color::bordeTeclaNegra.withAlpha (1.0f - nivel));
             g.drawRoundedRectangle (tecla.reduced (0.5f), 2.5f, 1.0f);
         }
 
-        if (escala::esTonica (resultado, nota))
-            dibujarPuntoTonica (g, tecla.withTrimmedBottom (-4.0f));
+        dibujarPuntoTonica (g, tecla.withTrimmedBottom (-4.0f), tonica[(size_t) nota]);
     }
 
     // --- Leyenda ---

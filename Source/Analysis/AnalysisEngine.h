@@ -12,7 +12,7 @@ namespace pca
 
         - Hilo de audio: pushAudio() copia la mezcla mono (L+R)/2 a un FIFO sin
           bloqueos (juce::AbstractFifo). No reserva memoria, no usa locks ni logs.
-        - Hilo de análisis propio: se despierta ~10 veces por segundo, vacía el
+        - Hilo de análisis propio: se despierta ~20 veces por segundo, vacía el
           FIFO, analiza y publica el resultado.
         - UI: getResult() devuelve una copia del último resultado. El lock que la
           protege solo lo usan el hilo de análisis y la UI, nunca el de audio.
@@ -43,7 +43,7 @@ namespace pca
         /** Aumenta cada vez que se publica un resultado distinto. */
         juce::uint32 getVersion() const noexcept { return version.load(); }
 
-        static constexpr int intervaloMs = 100;   ///< ~10 análisis por segundo
+        static constexpr int intervaloMs = 50;    ///< ~20 análisis por segundo (más fluido)
 
     private:
         void run() override;

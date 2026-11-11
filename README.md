@@ -11,7 +11,8 @@ Plugin VST3 para FL Studio que detecta **en tiempo real la escala** de lo que su
 ## Qué hace
 
 - Detecta la tonalidad (12 mayores y 12 menores) de lo que entra al plugin y la muestra en español ("La menor") con su cifrado ("Am"), su relativa y un porcentaje de confianza.
-- Se fija en la sección que suena (unos 6 s de memoria), no en cada acorde suelto, y la escala solo cambia cuando la nueva lleva al menos 1,5 s ganando. Nada de parpadeos.
+- La primera escala aparece en medio segundo. Después se fija en la sección que suena (unos 6 s de memoria), no en cada acorde suelto, y la escala solo cambia cuando la nueva lleva al menos 1,5 s ganando. Nada de parpadeos.
+- Los cambios se ven con fundidos suaves y el cromagrama se actualiza unas 20 veces por segundo.
 - Si el audio se para (FL detenido, huecos entre loops), mantiene la última escala.
 - Tres vistas que se cambian con las flechas o los puntos:
   - **Teclado:** una octava con las notas de la escala encendidas y la tónica marcada.
@@ -40,12 +41,12 @@ Plugin VST3 para FL Studio que detecta **en tiempo real la escala** de lo que su
 ## Cómo funciona
 
 1. **Hilo de audio:** cada bloque se deja pasar intacto y solo se copia la mezcla mono `(L+R)/2` a una cola sin bloqueos. Nada de reservar memoria, locks ni logs en ese hilo.
-2. **Hilo de análisis** (unas 10 veces por segundo):
+2. **Hilo de análisis** (unas 20 veces por segundo):
    - **Cromagrama:** FFT de 8192 muestras con ventana de Hann y salto de 2048. Se buscan los picos entre 55 Hz y 5 kHz, se afina su frecuencia por interpolación parabólica y su energía se suma en su nota (todas las octavas juntas).
    - **Acumulación:** media de las tramas que pasa a ser exponencial con 6 s de memoria.
    - **Tonalidad:** correlación con los 24 perfiles de **Krumhansl-Kessler**. Se probaron también los de Temperley, pero con loops de electrónica / hip-hop confunden a menudo la menor con su relativa mayor (48/48 aciertos frente a 39/48 en los tests).
    - **Confianza:** diferencia entre la mejor escala y la segunda.
-   - **Histéresis:** la nueva escala tiene que ser la mejor durante 1,5 s seguidos y ganar a la actual por un margen mínimo.
+   - **Histéresis:** la primera escala aparece tras 0,5 s; después, una escala nueva tiene que ser la mejor durante 1,5 s seguidos y ganar a la actual por un margen mínimo. Se probaron memorias más cortas (3-4 s): reaccionan antes, pero con progresiones como I-V-vi-IV la escala salta entre la mayor y su relativa menor.
    - **Silencio:** por debajo de -60 dBFS no se toca nada.
 3. **Interfaz:** lee el último resultado como mucho 30 veces por segundo y solo repinta lo que cambia.
 
@@ -69,11 +70,16 @@ El proyecto usa **JUCE 8** y **CMake**. JUCE se descarga solo al configurar.
 
 - las 24 escalas a 44,1 y 48 kHz;
 - que con un loop estable la escala no cambia nunca;
+- que la primera escala aparece en 1 s como máximo;
 - el silencio;
 - la histéresis al modular;
 - el hilo de análisis y el bypass;
 - el guardado del estado;
 - que la CPU queda por debajo del 1 %.
+
+### Analizar un archivo de audio
+
+`Tools/AnalizarArchivo.cpp` pasa un WAV/AIFF/FLAC/MP3 por el mismo motor y muestra cada medio segundo la escala, la confianza, las mejores candidatas y el cromagrama. Se compila con la misma opción que las capturas (`-DPCA_CAPTURAS=ON`, target `PChordAnalyzerAnalizar`).
 
 ### Capturas
 

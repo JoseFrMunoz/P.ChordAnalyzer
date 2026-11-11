@@ -93,6 +93,7 @@ public:
         probarProgresiones (pca::KeyDetector::Perfiles::krumhansl, 44100.0, true);
         compararPerfiles();
         probarMelodias();
+        probarPrimeraEscalaRapida();
         probarSilencio();
         probarHisteresis();
         probarMotorConHilo();
@@ -176,6 +177,22 @@ private:
                 expect (r.hayEscala && r.tonica == tonica && r.menor == (menor == 1),
                         "Melodia en " + pca::nombres::cifrado (tonica, menor == 1) + ", detectado " + describir (r));
             }
+    }
+
+    void probarPrimeraEscalaRapida()
+    {
+        beginTest ("La primera escala aparece en 1 s como maximo");
+
+        for (int tonica : { 0, 2, 9 })
+        {
+            pca::AnalysisCore core;
+            core.prepare (48000.0);
+
+            // Solo el acorde de tónica durante 1 s.
+            const auto audio = renderizar ({ { triada (octavaMedia (tonica), false), 1.0 } }, 48000.0);
+            const auto r = analizar (core, audio);
+            expect (r.hayEscala, "Tras 1 s debe haber escala (" + pca::nombres::cifrado (tonica, false) + ")");
+        }
     }
 
     void probarSilencio()

@@ -43,8 +43,10 @@ namespace pca
         const std::array<float, 24>& getCorrelaciones() const noexcept { return correlaciones; }
 
         static constexpr double memoriaSegundos     = 6.0;   ///< memoria de la media exponencial
-        static constexpr double memoriaVisualSegundos = 0.3; ///< suavizado del cromagrama que se dibuja
+        static constexpr double memoriaVisualSegundos = 0.15; ///< suavizado del cromagrama que se dibuja
         static constexpr double histeresisSegundos  = 1.5;
+        /** La primera escala (cuando aún no se muestra ninguna) aparece antes. */
+        static constexpr double primeraEscalaSegundos = 0.5;
         static constexpr double suavizadoConfianzaSegundos = 1.0; ///< para que el % no salte
         static constexpr float  umbralSilencioDb    = -60.0f;
         /** Ventaja mínima de correlación que necesita la candidata sobre la escala mostrada. */

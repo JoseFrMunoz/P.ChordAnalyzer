@@ -13,7 +13,7 @@ namespace pca
     {
         stop();
 
-        // FIFO de 1 segundo: el hilo lo vacía cada 100 ms, así que sobra margen.
+        // FIFO de 1 segundo: el hilo lo vacía cada 50 ms, así que sobra margen.
         const auto capacidad = juce::jmax (8192, (int) sampleRate);
         bufferFifo.assign ((size_t) capacidad, 0.0f);
         bufferLectura.assign ((size_t) capacidad, 0.0f);
@@ -56,7 +56,7 @@ namespace pca
     void AnalysisEngine::setActivo (bool nuevo) noexcept
     {
         // Se llama desde el hilo de audio en cada bloque: solo un atómico, sin
-        // despertar al hilo (se despierta solo cada 100 ms). Al reactivar, el
+        // despertar al hilo (se despierta solo cada 50 ms). Al reactivar, el
         // hilo descarta el audio viejo que quedara en el FIFO.
         activo.store (nuevo, std::memory_order_relaxed);
     }

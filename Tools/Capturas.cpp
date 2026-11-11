@@ -32,6 +32,9 @@ namespace
 
     void guardar (Interfaz& ui, const juce::File& carpeta, const juce::String& nombre)
     {
+        // Deja terminar fundidos, deslizamientos e interpolaciones antes de la foto.
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (800);
+
         const auto imagen = ui.createComponentSnapshot (ui.getLocalBounds(), true, 2.0f);
         const auto archivo = carpeta.getChildFile (nombre + ".png");
         archivo.deleteFile();
@@ -62,7 +65,6 @@ int main (int argc, char* argv[])
     ui.setVista (0, false);
     guardar (ui, carpeta, "02b-la-menor-teclado");
     ui.setVista (2, false);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil (800);
     guardar (ui, carpeta, "02c-la-menor-cromagrama");
     ui.setVista (1, false);
 
@@ -71,7 +73,6 @@ int main (int argc, char* argv[])
     ui.setVista (0, false);
     guardar (ui, carpeta, "03b-fa-sostenido-menor-teclado");
     ui.setVista (2, false);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil (800);
     guardar (ui, carpeta, "03c-fa-sostenido-menor-cromagrama");
     ui.setVista (1, false);
 

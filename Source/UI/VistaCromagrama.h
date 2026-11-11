@@ -18,7 +18,7 @@ public:
     void paint (juce::Graphics&) override;
 
     /** Constante de tiempo del movimiento de las barras. */
-    static constexpr double suavizadoSegundos = 0.12;
+    static constexpr double suavizadoSegundos = 0.07;
 
 private:
     void timerCallback() override;

@@ -1,7 +1,7 @@
 # P.ChordAnalyzer · proyecto CMake con JUCE 8
 cmake_minimum_required(VERSION 3.22)
 
-project(PChordAnalyzer VERSION 0.1.0 LANGUAGES C CXX)
+project(PChordAnalyzer VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -163,4 +163,14 @@ if(PCA_CAPTURAS)
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags
     )
+endif()
+
+# --- Herramienta para analizar un archivo de audio con el motor (opcional) ---
+if(PCA_CAPTURAS)
+    juce_add_console_app(PChordAnalyzerAnalizar PRODUCT_NAME "PChordAnalyzerAnalizar")
+    target_sources(PChordAnalyzerAnalizar PRIVATE Tools/AnalizarArchivo.cpp ${PCA_FUENTES_ANALISIS})
+    target_compile_definitions(PChordAnalyzerAnalizar PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(PChordAnalyzerAnalizar
+        PRIVATE juce::juce_audio_formats juce::juce_dsp
+        PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 endif()

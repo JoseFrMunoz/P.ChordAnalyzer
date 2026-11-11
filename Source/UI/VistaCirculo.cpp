@@ -21,18 +21,64 @@ namespace
     }
 }
 
+VistaCirculo::VistaCirculo()
+    : reloj ([this] (double dt)
+      {
+          const auto a = pildora.avanzar (dt);
+          const auto b = resaltado.avanzar (dt);
+          if (a || b) repaint();
+          return pildora.enMovimiento() || resaltado.enMovimiento();
+      })
+{
+}
+
+void VistaCirculo::actualizarObjetivos()
+{
+    const auto pos = resultado.hayEscala ? posicionDe (resultado.tonica, resultado.menor) : -1;
+
+    for (int i = 0; i < 12; ++i)
+        for (int anillo = 0; anillo < 2; ++anillo)
+        {
+            const auto idx = (size_t) (i + anillo * 12);
+            const auto esMenor = anillo == 1;
+            const auto detectada = pos == i && resultado.menor == esMenor;
+            const auto relativa  = pos == i && resultado.menor != esMenor;
+
+            pildora.setObjetivo (idx, detectada ? 1.0f : 0.0f);
+            resaltado.setObjetivo (idx, (detectada || relativa) ? 1.0f : 0.0f);
+        }
+}
+
 void VistaCirculo::setResultado (const pca::KeyResult& nuevo)
 {
-    if (! nuevo.difiereDe (resultado))
+    if (! nuevo.difiereDe (resultado) && ! primerResultado)
         return;
 
     // Esta vista no usa el cromagrama: solo repinta si cambia lo que muestra.
-    const auto cambiaAlgoVisible = nuevo.hayEscala != resultado.hayEscala || nuevo.tonica != resultado.tonica
-                                || nuevo.menor != resultado.menor
-                                || juce::roundToInt (nuevo.confianza * 100.0f) != juce::roundToInt (resultado.confianza * 100.0f);
+    const auto cambiaEscala = nuevo.hayEscala != resultado.hayEscala || nuevo.tonica != resultado.tonica
+                           || nuevo.menor != resultado.menor;
+    const auto cambiaPorcentaje = juce::roundToInt (nuevo.confianza * 100.0f) != juce::roundToInt (resultado.confianza * 100.0f);
     resultado = nuevo;
 
-    if (cambiaAlgoVisible)
+    if (cambiaEscala || primerResultado)
+    {
+        actualizarObjetivos();
+
+        if (primerResultado)
+        {
+            // Al abrir la ventana se muestra directamente, sin fundido.
+            pildora.saltar();
+            resaltado.saltar();
+        }
+        else
+        {
+            reloj.arrancar();
+        }
+    }
+
+    primerResultado = false;
+
+    if (cambiaEscala || cambiaPorcentaje)
         repaint();
 }
 
@@ -53,8 +99,6 @@ void VistaCirculo::paint (juce::Graphics& g)
     const auto radioMayores = (radioExterior + radioMedio) * 0.5f;
     const auto radioMenores = radioMedio * 0.70f;
 
-    const auto posDetectada = resultado.hayEscala ? posicionDe (resultado.tonica, resultado.menor) : -1;
-
     for (int i = 0; i < 12; ++i)
     {
         const auto mayor = mayorEnPosicion (i);
@@ -69,21 +113,22 @@ void VistaCirculo::paint (juce::Graphics& g)
 
             const auto punto = puntoEnCirculo (centro, esMenor ? radioMenores : radioMayores, i);
             const auto ancho = juce::GlyphArrangement::getStringWidth (fuente, texto);
-            auto caja = juce::Rectangle<float> (ancho + 10.0f, esMenor ? 15.0f : 17.0f).withCentre (punto);
+            const auto caja = juce::Rectangle<float> (ancho + 10.0f, esMenor ? 15.0f : 17.0f).withCentre (punto);
 
-            const auto esDetectada = posDetectada == i && resultado.menor == esMenor;
-            const auto esRelativa  = posDetectada == i && resultado.menor != esMenor;
+            const auto idx = (size_t) (i + anillo * 12);
+            const auto nivelPildora = pildora[idx];
 
-            if (esDetectada)
+            // Fondo de la píldora (con fundido).
+            if (nivelPildora > 0.0f)
             {
-                g.setColour (tema::color::tonica);
+                g.setColour (tema::color::tonica.withAlpha (nivelPildora));
                 g.fillRoundedRectangle (caja, caja.getHeight() * 0.5f);
-                g.setColour (tema::color::fondo);
             }
-            else
-            {
-                g.setColour (esRelativa ? tema::color::tonica : tema::color::textoSecundario);
-            }
+
+            // Texto: gris → blanco si está resaltada → oscuro si lleva píldora.
+            const auto colorTexto = tema::color::textoSecundario.interpolatedWith (tema::color::tonica, resaltado[idx])
+                                                                .interpolatedWith (tema::color::fondo, nivelPildora);
+            g.setColour (colorTexto);
 
             g.setFont (fuente);
             g.drawText (texto, caja, juce::Justification::centred, false);

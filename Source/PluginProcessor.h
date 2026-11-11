@@ -60,6 +60,10 @@ public:
         para que no se pierda al cerrar y abrir la ventana. */
     std::atomic<bool> congelado { false };
 
+    /** Vista abierta (0 = teclado, 1 = círculo, 2 = cromagrama). Se conserva
+        al cerrar y abrir la ventana; en la fase 5 se guarda con el proyecto. */
+    std::atomic<int> vistaActual { 1 };
+
     static constexpr const char* idBypass = "bypass";
 
 private:

@@ -46,7 +46,12 @@ set(PCA_FUENTES_UI
     Source/UI/Tema.cpp
     Source/UI/BotonIcono.cpp
     Source/UI/Cabecera.cpp
+    Source/UI/FilaNombre.cpp
+    Source/UI/VistaTeclado.cpp
     Source/UI/VistaCirculo.cpp
+    Source/UI/VistaCromagrama.cpp
+    Source/UI/Flecha.cpp
+    Source/UI/SelectorPuntos.cpp
     Source/UI/ZonaVistas.cpp
     Source/UI/Interfaz.cpp
 )
@@ -144,7 +149,7 @@ if(PCA_CAPTURAS)
         Source/Analysis/KeyNames.cpp
     )
 
-    target_compile_definitions(PChordAnalyzerCapturas PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_compile_definitions(PChordAnalyzerCapturas PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
 
     target_link_libraries(PChordAnalyzerCapturas
         PRIVATE

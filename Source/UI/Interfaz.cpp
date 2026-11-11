@@ -6,6 +6,21 @@ Interfaz::Interfaz()
     setOpaque (true);
     addAndMakeVisible (cabecera);
     addAndMakeVisible (vistas);
+    addAndMakeVisible (puntos);
+
+    puntos.setActivo (vistas.getVista());
+
+    vistas.onCambioVista = [this] (int indice)
+    {
+        puntos.setActivo (indice);
+        if (onCambioVista != nullptr) onCambioVista (indice);
+    };
+
+    puntos.onSeleccion = [this] (int indice)
+    {
+        setVista (indice, true);
+        if (onCambioVista != nullptr) onCambioVista (indice);
+    };
     setSize (tema::medida::anchoVentana, tema::medida::altoVentana);
 }
 
@@ -26,5 +41,12 @@ void Interfaz::resized()
     cabecera.setBounds (zona.removeFromTop (tema::medida::altoCabecera));
     zona.removeFromTop (6);
     vistas.setBounds (zona.removeFromTop (tema::medida::altoVistas));
-    // Debajo quedan 24 px para el selector de puntos (fase 4).
+    zona.removeFromTop (4);
+    puntos.setBounds (zona.removeFromTop (tema::medida::altoPuntos));
+}
+
+void Interfaz::setVista (int indice, bool animar)
+{
+    vistas.setVista (indice, animar);
+    puntos.setActivo (vistas.getVista());
 }

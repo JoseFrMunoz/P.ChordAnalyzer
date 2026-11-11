@@ -12,6 +12,16 @@ namespace
     pca::KeyResult ejemplo (int tonica, bool menor, float confianza)
     {
         pca::KeyResult r;
+        // Cromagrama verosímil: notas de la escala fuertes, tónica y quinta más.
+        const bool enMayor[12] { true, false, true, false, true, true, false, true, false, true, false, true };
+        const bool enMenor[12] { true, false, true, true, false, true, false, true, true, false, true, false };
+        const float extra[12]  { 1.0f, 0, 0.55f, 0.75f, 0.7f, 0.5f, 0, 0.85f, 0.6f, 0.45f, 0.5f, 0.4f };
+        for (int n = 0; n < 12; ++n)
+        {
+            const auto grado = (n - tonica + 12) % 12;
+            const auto dentro = menor ? enMenor[grado] : enMayor[grado];
+            r.cromagrama[(size_t) n] = dentro ? extra[grado] : 0.08f + 0.04f * (float) (n % 3);
+        }
         r.hayEscala = true;
         r.tonica = tonica;
         r.menor = menor;
@@ -47,8 +57,23 @@ int main (int argc, char* argv[])
     ui.vistas.setResultado (ejemplo (9, true, 0.87f));
     guardar (ui, carpeta, "02-la-menor");
 
+    // Las otras dos vistas (los resultados ya están cargados; el cromagrama
+    // interpola, así que esperamos a que las barras lleguen a su sitio).
+    ui.setVista (0, false);
+    guardar (ui, carpeta, "02b-la-menor-teclado");
+    ui.setVista (2, false);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil (800);
+    guardar (ui, carpeta, "02c-la-menor-cromagrama");
+    ui.setVista (1, false);
+
     ui.vistas.setResultado (ejemplo (6, true, 0.64f));
     guardar (ui, carpeta, "03-fa-sostenido-menor");
+    ui.setVista (0, false);
+    guardar (ui, carpeta, "03b-fa-sostenido-menor-teclado");
+    ui.setVista (2, false);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil (800);
+    guardar (ui, carpeta, "03c-fa-sostenido-menor-cromagrama");
+    ui.setVista (1, false);
 
     ui.vistas.setResultado (ejemplo (3, false, 0.92f));
     ui.cabecera.botonCongelar.setToggleState (true, juce::dontSendNotification);

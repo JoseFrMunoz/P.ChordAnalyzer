@@ -6,6 +6,10 @@ PChordAnalyzerEditor::PChordAnalyzerEditor (PChordAnalyzerProcessor& p)
 {
     addAndMakeVisible (interfaz);
 
+    // --- Vista abierta: se recuerda en el procesador ---
+    interfaz.setVista (procesador.vistaActual.load(), false);
+    interfaz.onCambioVista = [this] (int indice) { procesador.vistaActual = indice; };
+
     // --- Congelar: la UI deja de actualizarse; el análisis sigue por detrás ---
     cabecera.botonCongelar.setToggleState (procesador.congelado.load(), juce::dontSendNotification);
     cabecera.botonCongelar.onClick = [this]

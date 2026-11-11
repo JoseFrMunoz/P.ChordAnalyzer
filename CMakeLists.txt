@@ -29,7 +29,7 @@ juce_add_plugin(PChordAnalyzer
     PLUGIN_NAME             "P.ChordAnalyzer"
     COMPANY_NAME            "P.P"
     BUNDLE_ID               "com.pp.chordanalyzer"
-    PLUGIN_MANUFACTURER_CODE PPpp   # Código de fabricante (4 letras, al menos una mayúscula)
+    PLUGIN_MANUFACTURER_CODE PPpp   # Código de fabricante común a todos los plugins de P.P (no cambiar)
     PLUGIN_CODE             PCan    # Código único de este plugin
     FORMATS                 VST3 Standalone
     IS_SYNTH                FALSE

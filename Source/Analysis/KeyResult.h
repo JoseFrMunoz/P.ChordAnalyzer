@@ -29,7 +29,7 @@ namespace pca
         /** true si hay alguna diferencia visible respecto a otro resultado. */
         bool difiereDe (const KeyResult& otro) const noexcept
         {
-            constexpr float tolerancia = 1.0e-4f;
+            static constexpr float tolerancia = 1.0e-4f; // static: MSVC no deja usarla en la lambda sin capturarla
             auto distinto = [] (float a, float b) { return (a > b ? a - b : b - a) > tolerancia; };
 
             if (hayEscala != otro.hayEscala || tonica != otro.tonica || menor != otro.menor
